@@ -2,7 +2,7 @@
 # WestpacComAu
 
 # 20140628
-# 0.0.2
+# 0.0.3
 
 require 'Array/extract_optionsX'
 require 'Month.rbd/Month'
@@ -49,19 +49,24 @@ module WestpacComAu
       @logged_in = @driver_wait.until{@driver.element_present?(:id, 'overview-dashboard')}
     end
 
-    def download_transactions
-      case period
-      when :last_month; get_last_months_transactions
-      else; get_last_months_transactions
+    def download_transactions(*args)
+      options = args.extract_options!
+      case options[:period]
+      when :last_month; last_months_transactions(options[:account_number])
+      else; last_months_transactions(options[:account_number])
       end
     end
 
-    def last_months_transactions
+    def last_months_transactions(account_number)
       get_transactions_page
       @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker from"]/label/input').clear
       @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker to"]/label/input').clear
       @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker to"]/label/input').send_keys(last_month_last_date)
       @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker from"]/label/input').send_keys(last_month_first_date)
+      bank_account_dropdown_list = @driver.find_element(:css, '.export-accountlist')
+      webdriver_select_list = Selenium::WebDriver::Support::Select.new(bank_account_dropdown_list)
+      option = webdriver_select_list.options.detect{|option| option.attribute(:text) =~ /#{account_number}/}
+      option.click
     end
 
     # boolean methods
