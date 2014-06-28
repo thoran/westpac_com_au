@@ -2,7 +2,7 @@
 # WestpacComAu
 
 # 20140628
-# 0.0.5
+# 0.0.6
 
 require 'Array/extract_optionsX'
 require 'Month.rbd/Month'
@@ -73,6 +73,11 @@ module WestpacComAu
 
     def logout
       @driver.find_element(:xpath, '//a[.="Sign Out"]').click
+    end
+
+    def shutdown
+      logout
+      @driver.quit
     end
 
     # boolean methods
