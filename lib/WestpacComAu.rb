@@ -2,7 +2,7 @@
 # WestpacComAu
 
 # 20140628
-# 0.0.3
+# 0.0.4
 
 require 'Array/extract_optionsX'
 require 'Month.rbd/Month'
@@ -67,6 +67,7 @@ module WestpacComAu
       webdriver_select_list = Selenium::WebDriver::Support::Select.new(bank_account_dropdown_list)
       option = webdriver_select_list.options.detect{|option| option.attribute(:text) =~ /#{account_number}/}
       option.click
+      @driver.find_element(:css, 'button').click
     end
 
     # boolean methods
