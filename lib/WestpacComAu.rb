@@ -2,7 +2,7 @@
 # WestpacComAu
 
 # 20140628
-# 0.0.4
+# 0.0.5
 
 require 'Array/extract_optionsX'
 require 'Month.rbd/Month'
@@ -68,6 +68,11 @@ module WestpacComAu
       option = webdriver_select_list.options.detect{|option| option.attribute(:text) =~ /#{account_number}/}
       option.click
       @driver.find_element(:css, 'button').click
+      sleep 10
+    end
+
+    def logout
+      @driver.find_element(:xpath, '//a[.="Sign Out"]').click
     end
 
     # boolean methods
