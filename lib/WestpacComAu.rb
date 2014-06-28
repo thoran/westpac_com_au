@@ -2,9 +2,10 @@
 # WestpacComAu
 
 # 20140628
-# 0.0.1
+# 0.0.2
 
 require 'Array/extract_optionsX'
+require 'Month.rbd/Month'
 require 'selenium-webdriver'
 require 'Selenium/WebDriver/SearchContext/ElementTests'
 
@@ -48,26 +49,30 @@ module WestpacComAu
       @logged_in = @driver_wait.until{@driver.element_present?(:id, 'overview-dashboard')}
     end
 
-    def get_transactions_page
-      if logged_in?
-        @driver.get('https://banking.westpac.com.au/secure/banking/reportsandexports/home')
-        @driver_wait.until{@driver.elements_present?(:css, '.action-stack .action-stack-item a')}
-        @driver.find_elements(:css, '.action-stack .action-stack-item a').first.click
-        sleep 5
-        @driver_wait.until{@driver.element_present?(:css, 'h1')}
-        return @driver.find_element(:css, 'h1').text == 'Transactions export'
-      else
-        login
-        sleep 10
-        get_transactions_page
+    def download_transactions
+      case period
+      when :last_month; get_last_months_transactions
+      else; get_last_months_transactions
       end
     end
+
+    def last_months_transactions
+      get_transactions_page
+      @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker from"]/label/input').clear
+      @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker to"]/label/input').clear
+      @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker to"]/label/input').send_keys(last_month_last_date)
+      @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker from"]/label/input').send_keys(last_month_first_date)
+    end
+
+    # boolean methods
 
     def logged_in?
       @logged_in
     end
 
     private
+
+    # logging in
 
     def enter_customer_id
       customer_id_field.send_keys(customer_id)
@@ -91,6 +96,43 @@ module WestpacComAu
 
     def submit_button
       @driver.find_element(:id, 'btn-submit')
+    end
+
+    # transactions-related
+
+    def get_transactions_page
+      if logged_in?
+        @driver.get('https://banking.westpac.com.au/secure/banking/reportsandexports/home')
+        @driver_wait.until{@driver.elements_present?(:css, '.action-stack .action-stack-item a')}
+        @driver.find_elements(:css, '.action-stack .action-stack-item a').first.click
+        sleep 5
+        @driver_wait.until{@driver.element_present?(:css, 'h1')}
+        return @driver.find_element(:css, 'h1').text == 'Transactions export'
+      else
+        login
+        sleep 10
+        get_transactions_page
+      end
+    end
+
+    def last_month_number
+      "%02d" % Month.last.to_number
+    end
+
+    def last_month_year
+      Month.last.year
+    end
+
+    def last_month_date_common_parts
+      [last_month_number, last_month_year]
+    end
+
+    def last_month_first_date
+      (['01'] + last_month_date_common_parts).join('/')
+    end
+
+    def last_month_last_date
+      ([Month.last.days.to_s] + last_month_date_common_parts).join('/')
     end
 
   end
