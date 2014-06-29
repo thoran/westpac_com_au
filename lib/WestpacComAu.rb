@@ -2,9 +2,10 @@
 # WestpacComAu
 
 # 20140629
-# 0.0.9
+# 0.0.10
 
 require 'Array/extract_optionsX'
+require 'Date/self.parse'
 require 'Month.rbd/Month'
 require 'selenium-webdriver'
 require 'Selenium/WebDriver/SearchContext/ElementTests'
@@ -52,28 +53,39 @@ module WestpacComAu
     def download_transactions(*args)
       options = args.extract_options!
       case options[:period]
-      when :last_month; last_months_transactions(options[:account_number])
-      else; last_months_transactions(options[:account_number])
+      when :last_month
+        download_last_months_transactions(options)
+      else
+        download_custom_period_transactions(options)
       end
     end
 
-    def last_months_transactions(account_number)
+    def download_custom_period_transactions(options)
+      get_transactions_page
+      enter_to_date(options[:to_date])
+      enter_from_date(options[:from_date])
+      select_bank_account_from_dropdown_list(options[:account_number])
+      submit_button.click
+      sleep 10
+    end
+
+    def download_last_months_transactions(options)
       get_transactions_page
       # The order is to-from because the from date picker occludes the whole of the to input field.
       enter_last_month_last_date
       enter_last_month_first_date
-      select_bank_account_from_dropdown_list(account_number)
+      select_bank_account_from_dropdown_list(options[:account_number])
       submit_button.click
       sleep 10
     end
 
     def logout
       case
-      when @driver.element_present?(:xpath, '//a[.="Sign Out"]')
+      when @driver.element_present?(:xpath, '//a[.="Sign Out"]') # The link provided on the dashboard page and most everywhere else.
         @driver.find_element(:xpath, '//a[.="Sign Out"]').click
-      when @driver.element_present?(:xpath, '//a[.="Sign out"]')
+      when @driver.element_present?(:xpath, '//a[.="Sign out"]') # The link provided on the "Multiple sessions" page.
         @driver.element_present?(:xpath, '//a[.="Sign out"]').click
-      else
+      else # Failing the above, there's always just getting the link.
         @driver.get('https://banking.westpac.com.au/wbc/banking/handler?TAM_OP=logout')
       end
     end
@@ -139,24 +151,12 @@ module WestpacComAu
       end
     end
 
-    def last_month_number
-      "%02d" % Month.last.to_number
+    def last_month_from_date
+      Month.last.start_date
     end
 
-    def last_month_year
-      Month.last.year
-    end
-
-    def last_month_date_common_parts
-      [last_month_number, last_month_year]
-    end
-
-    def last_month_first_date
-      (['01'] + last_month_date_common_parts).join('/')
-    end
-
-    def last_month_last_date
-      ([Month.last.days.to_s] + last_month_date_common_parts).join('/')
+    def last_month_to_date
+      Month.last.finish_date
     end
 
     def from_date_field
@@ -167,14 +167,22 @@ module WestpacComAu
       @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker to"]/label/input')
     end
 
-    def enter_last_month_first_date
+    def enter_from_date(from_date)
       from_date_field.clear
-      from_date_field.send_keys(last_month_first_date)
+      from_date_field.send_keys(formatted_date(from_date))
+    end
+
+    def enter_to_date(to_date)
+      to_date_field.clear
+      to_date_field.send_keys(formatted_date(to_date))
+    end
+
+    def enter_last_month_first_date
+      enter_from_date(last_month_from_date)
     end
 
     def enter_last_month_last_date
-      to_date_field.clear
-      to_date_field.send_keys(last_month_last_date)
+      enter_from_date(last_month_to_date)
     end
 
     def bank_account_dropdown_list
@@ -188,6 +196,11 @@ module WestpacComAu
       else
         raise "Can't find supplied account number from the dropdown list."
       end
+    end
+
+    def formatted_date(date)
+      date = Date.parse(date) if date.is_a?(String)
+      date.strftime("%d/%m/%Y")
     end
 
   end
