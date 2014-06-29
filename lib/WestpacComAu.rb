@@ -2,9 +2,10 @@
 # WestpacComAu
 
 # 20140629
-# 0.0.10
+# 0.0.11
 
 require 'Array/extract_optionsX'
+require 'Date/self.last_year'
 require 'Date/self.parse'
 require 'Month.rbd/Month'
 require 'selenium-webdriver'
@@ -52,9 +53,13 @@ module WestpacComAu
 
     def download_transactions(*args)
       options = args.extract_options!
-      case options[:period]
-      when :last_month
-        download_last_months_transactions(options)
+      if options[:period]
+        case options[:period]
+        when :all
+          download_all_transactions(options)
+        when :last_month
+          download_last_months_transactions(options)
+        end
       else
         download_custom_period_transactions(options)
       end
@@ -62,21 +67,22 @@ module WestpacComAu
 
     def download_custom_period_transactions(options)
       get_transactions_page
-      enter_to_date(options[:to_date])
-      enter_from_date(options[:from_date])
-      select_bank_account_from_dropdown_list(options[:account_number])
+      options[:from_date] = options[:from_date] || Date.last_year
+      options[:to_date] = options[:to_date] || Date.today
+      enter_dates(options)
+      select_bank_account(options[:account_number])
       submit_button.click
       sleep 10
     end
 
     def download_last_months_transactions(options)
-      get_transactions_page
-      # The order is to-from because the from date picker occludes the whole of the to input field.
-      enter_last_month_last_date
-      enter_last_month_first_date
-      select_bank_account_from_dropdown_list(options[:account_number])
-      submit_button.click
-      sleep 10
+      options.merge!(from_date: Month.last.start_date, to_date: Month.last.finish_date)
+      download_custom_period_transactions(options)
+    end
+
+    def download_all_transactions(options)
+      options.merge!(from_date: Date.last_year, to_date: Date.today)
+      download_custom_period_transactions(options)
     end
 
     def logout
@@ -151,20 +157,18 @@ module WestpacComAu
       end
     end
 
-    def last_month_from_date
-      Month.last.start_date
-    end
-
-    def last_month_to_date
-      Month.last.finish_date
-    end
-
     def from_date_field
       @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker from"]/label/input')
     end
 
     def to_date_field
       @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker to"]/label/input')
+    end
+
+    # The order is to-from because the from date picker occludes the whole of the to input field.
+    def enter_dates(options)
+      enter_to_date(options[:to_date])
+      enter_from_date(options[:from_date])
     end
 
     def enter_from_date(from_date)
@@ -177,19 +181,11 @@ module WestpacComAu
       to_date_field.send_keys(formatted_date(to_date))
     end
 
-    def enter_last_month_first_date
-      enter_from_date(last_month_from_date)
-    end
-
-    def enter_last_month_last_date
-      enter_from_date(last_month_to_date)
-    end
-
     def bank_account_dropdown_list
       @driver.find_element(:css, '.export-accountlist')
     end
 
-    def select_bank_account_from_dropdown_list(account_number)
+    def select_bank_account(account_number)
       webdriver_select_list = Selenium::WebDriver::Support::Select.new(bank_account_dropdown_list)
       if option = webdriver_select_list.options.detect{|option| option.attribute(:text) =~ /#{account_number}/}
         option.click
