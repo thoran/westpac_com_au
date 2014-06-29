@@ -2,7 +2,7 @@
 # WestpacComAu
 
 # 20140629
-# 0.0.8
+# 0.0.9
 
 require 'Array/extract_optionsX'
 require 'Month.rbd/Month'
@@ -36,13 +36,6 @@ module WestpacComAu
           enter_customer_id
           enter_password
           sign_in
-          sleep 5
-          # The following is far too inefficient and may not work at all if each new session resets something...
-          if @driver.page_source =~ /Multiple sessions/
-            logout
-            sign_in
-            @driver_wait.until{element_present?(:id, 'overview-dashboard')}
-          end
           break
         rescue Timeout::Error, Selenium::WebDriver::Error::UnknownError, Selenium::WebDriver::Error::NoSuchElementError => e
           attempts += 1
@@ -66,21 +59,20 @@ module WestpacComAu
 
     def last_months_transactions(account_number)
       get_transactions_page
-      @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker from"]/label/input').clear
-      @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker to"]/label/input').clear
-      @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker to"]/label/input').send_keys(last_month_last_date)
-      @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker from"]/label/input').send_keys(last_month_first_date)
-      bank_account_dropdown_list = @driver.find_element(:css, '.export-accountlist')
-      webdriver_select_list = Selenium::WebDriver::Support::Select.new(bank_account_dropdown_list)
-      option = webdriver_select_list.options.detect{|option| option.attribute(:text) =~ /#{account_number}/}
-      option.click
-      @driver.find_element(:css, 'button').click
+      # The order is to-from because the from date picker occludes the whole of the to input field.
+      enter_last_month_last_date
+      enter_last_month_first_date
+      select_bank_account_from_dropdown_list(account_number)
+      submit_button.click
       sleep 10
     end
 
     def logout
-      if @driver.element_present?(:xpath, '//a[.="Sign Out"]')
+      case
+      when @driver.element_present?(:xpath, '//a[.="Sign Out"]')
         @driver.find_element(:xpath, '//a[.="Sign Out"]').click
+      when @driver.element_present?(:xpath, '//a[.="Sign out"]')
+        @driver.element_present?(:xpath, '//a[.="Sign out"]').click
       else
         @driver.get('https://banking.westpac.com.au/wbc/banking/handler?TAM_OP=logout')
       end
@@ -122,7 +114,12 @@ module WestpacComAu
     end
 
     def submit_button
-      @driver.find_element(:id, 'btn-submit')
+      case
+      when @driver.element_present?(:id, 'btn-submit')
+        @driver.find_element(:id, 'btn-submit')
+      when @driver.element_present?(:css, 'button')
+        @driver.find_element(:css, 'button')
+      end
     end
 
     # transactions-related
@@ -160,6 +157,37 @@ module WestpacComAu
 
     def last_month_last_date
       ([Month.last.days.to_s] + last_month_date_common_parts).join('/')
+    end
+
+    def from_date_field
+      @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker from"]/label/input')
+    end
+
+    def to_date_field
+      @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker to"]/label/input')
+    end
+
+    def enter_last_month_first_date
+      from_date_field.clear
+      from_date_field.send_keys(last_month_first_date)
+    end
+
+    def enter_last_month_last_date
+      to_date_field.clear
+      to_date_field.send_keys(last_month_last_date)
+    end
+
+    def bank_account_dropdown_list
+      @driver.find_element(:css, '.export-accountlist')
+    end
+
+    def select_bank_account_from_dropdown_list(account_number)
+      webdriver_select_list = Selenium::WebDriver::Support::Select.new(bank_account_dropdown_list)
+      if option = webdriver_select_list.options.detect{|option| option.attribute(:text) =~ /#{account_number}/}
+        option.click
+      else
+        raise "Can't find supplied account number from the dropdown list."
+      end
     end
 
   end
