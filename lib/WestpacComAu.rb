@@ -1,8 +1,8 @@
 # WestpacComAu.rb
 # WestpacComAu
 
-# 20140628
-# 0.0.6
+# 20140628, 29
+# 0.0.7
 
 require 'Array/extract_optionsX'
 require 'Month.rbd/Month'
@@ -36,6 +36,15 @@ module WestpacComAu
           enter_customer_id
           enter_password
           sign_in
+          sleep 5
+          if @driver.page_source =~ /Multiple sessions/
+            until @driver.element_present?(:id, 'overview-dashboard')
+              # Both of the following work insofar as it clicks the button or appears to submit the form, but it doesn't work even so.
+              # @driver.find_element(:xpath, '//button').click
+              # @driver.find_element(:xpath, '//form').submit
+              sleep 5
+            end
+          end
           break
         rescue Timeout::Error, Selenium::WebDriver::Error::UnknownError, Selenium::WebDriver::Error::NoSuchElementError => e
           attempts += 1
