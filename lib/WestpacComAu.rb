@@ -1,8 +1,8 @@
 # WestpacComAu.rb
 # WestpacComAu
 
-# 20140628, 29
-# 0.0.7
+# 20140629
+# 0.0.8
 
 require 'Array/extract_optionsX'
 require 'Month.rbd/Month'
@@ -37,13 +37,11 @@ module WestpacComAu
           enter_password
           sign_in
           sleep 5
+          # The following is far too inefficient and may not work at all if each new session resets something...
           if @driver.page_source =~ /Multiple sessions/
-            until @driver.element_present?(:id, 'overview-dashboard')
-              # Both of the following work insofar as it clicks the button or appears to submit the form, but it doesn't work even so.
-              # @driver.find_element(:xpath, '//button').click
-              # @driver.find_element(:xpath, '//form').submit
-              sleep 5
-            end
+            logout
+            sign_in
+            @driver_wait.until{element_present?(:id, 'overview-dashboard')}
           end
           break
         rescue Timeout::Error, Selenium::WebDriver::Error::UnknownError, Selenium::WebDriver::Error::NoSuchElementError => e
@@ -81,7 +79,11 @@ module WestpacComAu
     end
 
     def logout
-      @driver.find_element(:xpath, '//a[.="Sign Out"]').click
+      if @driver.element_present?(:xpath, '//a[.="Sign Out"]')
+        @driver.find_element(:xpath, '//a[.="Sign Out"]').click
+      else
+        @driver.get('https://banking.westpac.com.au/wbc/banking/handler?TAM_OP=logout')
+      end
     end
 
     def shutdown
