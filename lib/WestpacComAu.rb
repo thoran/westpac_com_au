@@ -2,7 +2,7 @@
 # WestpacComAu
 
 # 20140629
-# 0.0.11
+# 0.0.12
 
 require 'Array/extract_optionsX'
 require 'Date/self.last_year'
@@ -24,7 +24,7 @@ module WestpacComAu
       user_agent_alias = options[:user_agent_alias] || options['user_agent_alias'] || :chrome
       @driver = Selenium::WebDriver.for(user_agent_alias)
       @driver.manage.timeouts.implicit_wait = 5
-      @driver_wait = Selenium::WebDriver::Wait.new(timeout: 30)
+      @driver_wait = Selenium::WebDriver::Wait.new(timeout: 60)
     end
 
     def login(customer_id = nil, password = nil)
