@@ -1,8 +1,8 @@
 # WestpacComAu.rb
 # WestpacComAu
 
-# 20140629
-# 0.0.12
+# 20140720
+# 0.0.13
 
 require 'Array/extract_optionsX'
 require 'Date/self.last_year'
@@ -48,7 +48,10 @@ module WestpacComAu
           end
         end
       end
-      @logged_in = @driver_wait.until{@driver.element_present?(:id, 'overview-dashboard')}
+      @logged_in = @driver_wait.until do
+        @driver.element_present?(:id, 'overview-dashboard') ||
+        @driver.element_present?(:id, 'Overview.Accounts.List')
+      end
     end
 
     def download_transactions(*args)
