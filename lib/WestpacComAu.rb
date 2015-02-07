@@ -1,8 +1,12 @@
 # WestpacComAu.rb
 # WestpacComAu
 
-# 20140801
-# 0.0.14
+# 20150208
+# 0.1.0
+
+# Changes since 0.0:
+# 1. ~ WestpacComAu::Account#get_transactions_page, so that it goes straight there, since the link from the previous page has changed.
+# 2. ~ WestpacComAu::Account#submit_button, as the id was removed from the button and am using css instead now.
 
 require 'Array/extract_optionsX'
 require 'Date/self.last_year'
@@ -138,8 +142,8 @@ module WestpacComAu
       case
       when @driver.element_present?(:id, 'btn-submit')
         @driver.find_element(:id, 'btn-submit')
-      when @driver.element_present?(:css, 'button')
-        @driver.find_element(:css, 'button')
+      when @driver.element_present?(:css, '.export-link')
+        @driver.find_element(:css, '.export-link')
       end
     end
 
@@ -147,11 +151,7 @@ module WestpacComAu
 
     def get_transactions_page
       if logged_in?
-        @driver.get('https://banking.westpac.com.au/secure/banking/reportsandexports/home')
-        @driver_wait.until{@driver.elements_present?(:css, '.action-stack .action-stack-item a')}
-        @driver.find_elements(:css, '.action-stack .action-stack-item a').first.click
-        sleep 5
-        @driver_wait.until{@driver.element_present?(:css, 'h1')}
+        @driver.get('https://banking.westpac.com.au/secure/banking/reportsandexports/exportparameters/2/')
         return @driver.find_element(:css, 'h1').text == 'Transactions export'
       else
         login
