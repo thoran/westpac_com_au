@@ -1,12 +1,11 @@
 # WestpacComAu.rb
 # WestpacComAu
 
-# 20150208
-# 0.1.0
+# 20160403
+# 0.2.0
 
-# Changes since 0.0:
-# 1. ~ WestpacComAu::Account#get_transactions_page, so that it goes straight there, since the link from the previous page has changed.
-# 2. ~ WestpacComAu::Account#submit_button, as the id was removed from the button and am using css instead now.
+# Changes since 0.1:
+# 1. Bank account selection is no longer a select list, but is now a field.
 
 require 'Array/extract_optionsX'
 require 'Date/self.last_year'
@@ -184,17 +183,12 @@ module WestpacComAu
       to_date_field.send_keys(formatted_date(to_date))
     end
 
-    def bank_account_dropdown_list
-      @driver.find_element(:css, '.export-accountlist')
+    def bank_account_field
+      @driver.find_element(:xpath, '//span[@class="autosuggest"]/input')
     end
 
     def select_bank_account(account_number)
-      webdriver_select_list = Selenium::WebDriver::Support::Select.new(bank_account_dropdown_list)
-      if option = webdriver_select_list.options.detect{|option| option.attribute(:text) =~ /#{account_number}/}
-        option.click
-      else
-        raise "Can't find supplied account number from the dropdown list."
-      end
+      bank_account_field.send_keys(account_number)
     end
 
     def formatted_date(date)
