@@ -1,11 +1,13 @@
 # WestpacComAu.rb
 # WestpacComAu
 
-# 20160403
-# 0.2.0
+# 20160820
+# 0.3.0
 
-# Changes since 0.1:
-# 1. Bank account selection is no longer a select list, but is now a field.
+# Changes since 0.2:
+# 1. Username field has changed name.
+# 2. Password buttons are now <button> elements.
+# 3. The submit button has also changed name.
 
 require 'Array/extract_optionsX'
 require 'Date/self.last_year'
@@ -122,7 +124,7 @@ module WestpacComAu
     end
 
     def customer_id_field
-      @driver.find_element(:id, 'username_temp')
+      @driver.find_element(:id, 'fakeusername')
     end
 
     def enter_password
@@ -130,7 +132,7 @@ module WestpacComAu
     end
 
     def password_button(char)
-      @driver.find_element(:id, "keypad_0_kp#{char.upcase}")
+      @driver.find_element(:xpath, "//div[@class=\"keys\"]//button[text()=\"#{char.upcase}\"]")
     end
 
     def sign_in
@@ -139,8 +141,8 @@ module WestpacComAu
 
     def submit_button
       case
-      when @driver.element_present?(:id, 'btn-submit')
-        @driver.find_element(:id, 'btn-submit')
+      when @driver.element_present?(:id, 'signin')
+        @driver.find_element(:id, 'signin')
       when @driver.element_present?(:css, '.export-link')
         @driver.find_element(:css, '.export-link')
       end
