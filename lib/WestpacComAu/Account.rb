@@ -1,13 +1,11 @@
 # WestpacComAu.rb
 # WestpacComAu
 
-# 20160820
-# 0.3.0
+# 20171223
+# 0.4.0
 
-# Changes since 0.2:
-# 1. Username field has changed name.
-# 2. Password buttons are now <button> elements.
-# 3. The submit button has also changed name.
+# Changes since 0.3:
+# 1. + require 'WebAccount'
 
 require 'Array/extract_optionsX'
 require 'Date/self.last_year'
@@ -15,34 +13,44 @@ require 'Date/self.parse'
 require 'Month.rbd/Month'
 require 'selenium-webdriver'
 require 'Selenium/WebDriver/SearchContext/ElementTests'
+require 'WebAccount'
+
+PAGE_IDS = {
+  login_page_url: 'https://online.westpac.com.au/esis/Login/SrvPage?referrer=http%3A%2F%2Fwww.westpac.com.au%2FHomepageAlternative%2F',
+  login_page_username_field_id: 'fakeusername',
+  # login_page_password_field_id: '',
+  login_page_submit_button_id: 'signin',
+  # logout_button_id: '',
+  # logged_out_xpath: ''
+}
 
 module WestpacComAu
-  class Account
+  class Account < WebAccount
 
-    attr_accessor :customer_id
-    attr_accessor :password
-
-    def initialize(*args)
-      options = args.extract_options!
-      @customer_id = options[:customer_id] || options['customer_id']
-      @password = options[:password] || options['password']
-      user_agent_alias = options[:user_agent_alias] || options['user_agent_alias'] || :chrome
-      @driver = Selenium::WebDriver.for(user_agent_alias)
-      @driver.manage.timeouts.implicit_wait = 5
-      @driver_wait = Selenium::WebDriver::Wait.new(timeout: 180)
+    def initialize(username: nil, password: nil)
+      super(
+        username: username, password: password,
+        login_page_url: PAGE_IDS[:login_page_url],
+        login_page_username_field_id: PAGE_IDS[:login_page_username_field_id], login_page_password_field_id: PAGE_IDS[:login_page_password_field_id],
+        login_page_submit_button_id: PAGE_IDS[:login_page_submit_button_id],
+        logout_button_id: PAGE_IDS[:logout_button_id],
+        logged_out_xpath: PAGE_IDS[:logged_out_xpath],
+      )
     end
 
-    def login(customer_id = nil, password = nil)
+    # begin overrides of WebAccount...
+
+    def login(username: nil, password: nil)
       @logged_in = false
-      customer_id ||= self.customer_id
+      username ||= self.username
       password ||= self.password
       attempts = 0
       loop do
         begin
-          @driver.get('https://online.westpac.com.au/esis/Login/SrvPage?referrer=http%3A%2F%2Fwww.westpac.com.au%2FHomepageAlternative%2F')
-          enter_customer_id
-          enter_password
-          sign_in
+          get_login_page
+          enter_username(username)
+          enter_password(password)
+          login_page_submit_button.click
           break
         rescue Timeout::Error, Selenium::WebDriver::Error::UnknownError, Selenium::WebDriver::Error::NoSuchElementError => e
           attempts += 1
@@ -53,11 +61,39 @@ module WestpacComAu
           end
         end
       end
-      @logged_in = @driver_wait.until do
+      @logged_in = driver_wait.until do
+        # If I can do away with one of these elements, then I can use the inherited login().
         @driver.element_present?(:id, 'overview-dashboard') ||
         @driver.element_present?(:id, 'Overview.Accounts.List')
       end
     end
+
+    # If I can do away with one of these elements, then I can use the inherited logout().
+    def logout
+      case
+      when @driver.element_present?(:xpath, '//a[.="Sign Out"]') # The link provided on the dashboard page and most everywhere else.
+        @driver.find_element(:xpath, '//a[.="Sign Out"]').click
+      when @driver.element_present?(:xpath, '//a[.="Sign out"]') # The link provided on the "Multiple sessions" page.
+        @driver.element_present?(:xpath, '//a[.="Sign out"]').click
+      else # Failing the above, there's always just getting the link.
+        @driver.get('https://banking.westpac.com.au/wbc/banking/handler?TAM_OP=logout')
+      end
+    end
+
+    private
+
+    def enter_password(password = nil)
+      password ||= self.password
+      password.each_char{|char| password_button(char).click}
+    end
+
+    def password_button(char)
+      @driver.find_element(:xpath, "//div[@class=\"keys\"]//button[text()=\"#{char.upcase}\"]")
+    end
+
+    public
+
+    # end overrides of WebAccount
 
     def download_transactions(*args)
       options = args.extract_options!
@@ -79,7 +115,7 @@ module WestpacComAu
       options[:to_date] = options[:to_date] || Date.today
       enter_dates(options)
       select_bank_account(options[:account_number])
-      submit_button.click
+      download_submit_button.click
       sleep 10
     end
 
@@ -93,62 +129,13 @@ module WestpacComAu
       download_custom_period_transactions(options)
     end
 
-    def logout
-      case
-      when @driver.element_present?(:xpath, '//a[.="Sign Out"]') # The link provided on the dashboard page and most everywhere else.
-        @driver.find_element(:xpath, '//a[.="Sign Out"]').click
-      when @driver.element_present?(:xpath, '//a[.="Sign out"]') # The link provided on the "Multiple sessions" page.
-        @driver.element_present?(:xpath, '//a[.="Sign out"]').click
-      else # Failing the above, there's always just getting the link.
-        @driver.get('https://banking.westpac.com.au/wbc/banking/handler?TAM_OP=logout')
-      end
-    end
-
-    def shutdown
-      logout
-      @driver.quit
-    end
-
-    # boolean methods
-
-    def logged_in?
-      @logged_in
-    end
-
     private
 
-    # logging in
-
-    def enter_customer_id
-      customer_id_field.send_keys(customer_id)
-    end
-
-    def customer_id_field
-      @driver.find_element(:id, 'fakeusername')
-    end
-
-    def enter_password
-      password.each_char{|char| password_button(char).click}
-    end
-
-    def password_button(char)
-      @driver.find_element(:xpath, "//div[@class=\"keys\"]//button[text()=\"#{char.upcase}\"]")
-    end
-
-    def sign_in
-      submit_button.click
-    end
-
-    def submit_button
-      case
-      when @driver.element_present?(:id, 'signin')
-        @driver.find_element(:id, 'signin')
-      when @driver.element_present?(:css, '.export-link')
-        @driver.find_element(:css, '.export-link')
-      end
-    end
-
     # transactions-related
+
+    def download_submit_button
+      @driver.find_element(:css, '.export-link')
+    end
 
     def get_transactions_page
       if logged_in?
@@ -199,4 +186,11 @@ module WestpacComAu
     end
 
   end
+end
+
+if __FILE__ == $0
+  westpac_account = WestpacComAu::Account.new(username: ARGV[0], password: ARGV[1])
+  westpac_account.login
+  westpac_account.download_transactions
+  westpac_account.shutdown
 end
