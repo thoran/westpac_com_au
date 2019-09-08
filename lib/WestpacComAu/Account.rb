@@ -1,11 +1,11 @@
 # WestpacComAu.rb
 # WestpacComAu
 
-# 20171223
-# 0.4.0
+# 20190908
+# 0.5.0
 
-# Changes since 0.3:
-# 1. + require 'WebAccount'
+# Changes since 0.4:
+# 1. Only now getting around to removing password keypad entry after Westpac changed it to an input field about a year ago.
 
 require 'Array/extract_optionsX'
 require 'Date/self.last_year'
@@ -15,17 +15,17 @@ require 'selenium-webdriver'
 require 'Selenium/WebDriver/SearchContext/ElementTests'
 require 'WebAccount'
 
-PAGE_IDS = {
-  login_page_url: 'https://online.westpac.com.au/esis/Login/SrvPage?referrer=http%3A%2F%2Fwww.westpac.com.au%2FHomepageAlternative%2F',
-  login_page_username_field_id: 'fakeusername',
-  # login_page_password_field_id: '',
-  login_page_submit_button_id: 'signin',
-  # logout_button_id: '',
-  # logged_out_xpath: ''
-}
-
 module WestpacComAu
   class Account < WebAccount
+
+    PAGE_IDS = {
+      login_page_url: 'https://online.westpac.com.au/esis/Login/SrvPage?referrer=http%3A%2F%2Fwww.westpac.com.au%2FHomepageAlternative%2F',
+      login_page_username_field_id: 'fakeusername',
+      login_page_password_field_id: 'password',
+      login_page_submit_button_id: 'signin',
+      # logout_button_id: '',
+      # logged_out_xpath: ''
+    }
 
     def initialize(username: nil, password: nil)
       super(
@@ -55,43 +55,32 @@ module WestpacComAu
         rescue Timeout::Error, Selenium::WebDriver::Error::UnknownError, Selenium::WebDriver::Error::NoSuchElementError => e
           attempts += 1
           if attempts >= 3
-            @driver.quit
+            driver.quit
             puts "Giving up after 3 attempts to #{__method__} because #{e}."
             exit
           end
         end
       end
-      @logged_in = driver_wait.until do
-        # If I can do away with one of these elements, then I can use the inherited login().
-        @driver.element_present?(:id, 'overview-dashboard') ||
-        @driver.element_present?(:id, 'Overview.Accounts.List')
-      end
+      # The commented out code was causing the whole thing to bomb for some reason, so I just set @logged_in to true for now.
+      # @logged_in = driver_wait.until do
+      #   # If I can do away with one of these elements, then I can use the inherited login().
+      #   driver.element_present?(:id, 'overview-dashboard') ||
+      #   driver.element_present?(:id, 'Overview.Accounts.List')
+      # end
+      @logged_in = true
     end
 
     # If I can do away with one of these elements, then I can use the inherited logout().
     def logout
       case
-      when @driver.element_present?(:xpath, '//a[.="Sign Out"]') # The link provided on the dashboard page and most everywhere else.
-        @driver.find_element(:xpath, '//a[.="Sign Out"]').click
-      when @driver.element_present?(:xpath, '//a[.="Sign out"]') # The link provided on the "Multiple sessions" page.
-        @driver.element_present?(:xpath, '//a[.="Sign out"]').click
+      when driver.element_present?(:xpath, '//a[.="Sign Out"]') # The link provided on the dashboard page and most everywhere else.
+        driver.find_element(:xpath, '//a[.="Sign Out"]').click
+      when driver.element_present?(:xpath, '//a[.="Sign out"]') # The link provided on the "Multiple sessions" page.
+        driver.element_present?(:xpath, '//a[.="Sign out"]').click
       else # Failing the above, there's always just getting the link.
-        @driver.get('https://banking.westpac.com.au/wbc/banking/handler?TAM_OP=logout')
+        driver.get('https://banking.westpac.com.au/wbc/banking/handler?TAM_OP=logout')
       end
     end
-
-    private
-
-    def enter_password(password = nil)
-      password ||= self.password
-      password.each_char{|char| password_button(char).click}
-    end
-
-    def password_button(char)
-      @driver.find_element(:xpath, "//div[@class=\"keys\"]//button[text()=\"#{char.upcase}\"]")
-    end
-
-    public
 
     # end overrides of WebAccount
 
@@ -134,13 +123,13 @@ module WestpacComAu
     # transactions-related
 
     def download_submit_button
-      @driver.find_element(:css, '.export-link')
+      driver.find_element(:css, '.export-link')
     end
 
     def get_transactions_page
       if logged_in?
-        @driver.get('https://banking.westpac.com.au/secure/banking/reportsandexports/exportparameters/2/')
-        return @driver.find_element(:css, 'h1').text == 'Transactions export'
+        driver.get('https://banking.westpac.com.au/secure/banking/reportsandexports/exportparameters/2/')
+        return driver.find_element(:css, 'h1').text == 'Transactions export'
       else
         login
         sleep 10
@@ -149,11 +138,11 @@ module WestpacComAu
     end
 
     def from_date_field
-      @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker from"]/label/input')
+      driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker from"]/label/input')
     end
 
     def to_date_field
-      @driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker to"]/label/input')
+      driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker to"]/label/input')
     end
 
     # The order is to-from because the from date picker occludes the whole of the to input field.
@@ -173,11 +162,13 @@ module WestpacComAu
     end
 
     def bank_account_field
-      @driver.find_element(:xpath, '//span[@class="autosuggest"]/input')
+      driver.find_element(:xpath, '//input[@id="Accounts_1"]')
     end
 
     def select_bank_account(account_number)
       bank_account_field.send_keys(account_number)
+      sleep 1
+      bank_account_field.send_keys(Selenium::WebDriver::Keys[:return])
     end
 
     def formatted_date(date)
