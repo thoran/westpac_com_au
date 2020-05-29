@@ -1,20 +1,22 @@
 # WestpacComAu.rb
 # WestpacComAu
 
-# 20191013
-# 0.5.1
+# 20200529
+# 0.5.2
 
 # Changes since 0.4:
 # 1. Only now getting around to removing password keypad entry after Westpac changed it to an input field about a year ago.
 # 0/1
 # 2. /require 'Month.rb/Month'/require 'Month'/
+# 1/2
+# 3. /require 'Selenium/WebDriver/SearchContext/ElementTests'/require 'Selenium/WebDriver/SearchContext/ElementPresentQ/element_presentQ'/
 
 require 'Array/extract_optionsX'
 require 'Date/self.last_year'
 require 'Date/self.parse'
 require 'Month'
 require 'selenium-webdriver'
-require 'Selenium/WebDriver/SearchContext/ElementTests'
+require 'Selenium/WebDriver/SearchContext/ElementPresentQ/element_presentQ'
 require 'WebAccount'
 
 module WestpacComAu
