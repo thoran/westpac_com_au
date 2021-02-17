@@ -1,15 +1,17 @@
 # WestpacComAu.rb
 # WestpacComAu
 
-# 20200529
-# 0.5.2
+# 20210217
+# 0.5.3
 
 # Changes since 0.4:
 # 1. Only now getting around to removing password keypad entry after Westpac changed it to an input field about a year ago.
 # 0/1
 # 2. /require 'Month.rb/Month'/require 'Month'/
 # 1/2
-# 3. /require 'Selenium/WebDriver/SearchContext/ElementTests'/require 'Selenium/WebDriver/SearchContext/ElementPresentQ/element_presentQ'/
+# 3. /require 'Selenium/WebDriver/SearchContext/ElementTests'/require 'Selenium/WebDriver/SearchContext/ElementPresentQ/element_presentQ'
+# 2/3
+# 4. Commented the @logged_in block back in.
 
 require 'Array/extract_optionsX'
 require 'Date/self.last_year'
@@ -65,13 +67,14 @@ module WestpacComAu
           end
         end
       end
-      # The commented out code was causing the whole thing to bomb for some reason, so I just set @logged_in to true for now.
-      # @logged_in = driver_wait.until do
-      #   # If I can do away with one of these elements, then I can use the inherited login().
-      #   driver.element_present?(:id, 'overview-dashboard') ||
-      #   driver.element_present?(:id, 'Overview.Accounts.List')
-      # end
-      @logged_in = true
+      # The code block below was commented out because it was causing the whole thing to bomb for some reason,
+      # so I had set @logged_in to true, but it seems to be working OK now.
+      @logged_in = driver_wait.until do
+        # If I can do away with one of these elements, then I can use the inherited login().
+        driver.element_present?(:id, 'overview-dashboard') ||
+        driver.element_present?(:id, 'Overview.Accounts.List')
+      end
+      # @logged_in = true
     end
 
     # If I can do away with one of these elements, then I can use the inherited logout().
