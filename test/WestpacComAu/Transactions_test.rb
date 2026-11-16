@@ -3,10 +3,7 @@
 # Notes:
 # 1. WestpacComAu::Account.new is swapped for a stand-in for the length of each example and put back afterwards, so as no browser is started.
 
-require_relative '../../lib/westpac_com_au'
-
-require 'minitest/autorun'
-require 'minitest-spec-context'
+require_relative '../helper'
 
 describe WestpacComAu::Transactions do
   def with_stand_in_account(download: ->{'/downloads/transactions.csv'})

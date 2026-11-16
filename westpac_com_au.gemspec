@@ -1,3 +1,5 @@
+# westpac_com_au.gemspec
+
 require_relative './lib/WestpacComAu/VERSION'
 
 class Gem::Specification
@@ -21,6 +23,13 @@ Gem::Specification.new do |spec|
   spec.email = 'code@thoran.com'
   spec.homepage = 'https://github.com/thoran/westpac_com_au'
   spec.license = 'MIT'
+
+  spec.metadata = {
+    'bug_tracker_uri' => 'https://github.com/thoran/westpac_com_au/issues',
+    'changelog_uri' => 'https://github.com/thoran/westpac_com_au/blob/master/CHANGELOG',
+    'source_code_uri' => 'https://github.com/thoran/westpac_com_au',
+    'documentation_uri' => 'https://github.com/thoran/westpac_com_au/blob/master/README.md',
+  }
 
   spec.require_paths = ['lib']
   spec.required_ruby_version = '>= 3.3'

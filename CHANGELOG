@@ -1,6 +1,17 @@
-# CHANGELOG
+# westpac_com_au/CHANGELOG
 
 ## 20261116
+
+0.6.2: The tests share a helper, and VERSION and the gemspec are tested; the gemspec links to the repository.
+
+1. + test/helper.rb
+2. ~ test/WestpacComAu/Account_test.rb: Requires the helper.
+3. ~ test/WestpacComAu/Transactions_test.rb: Requires the helper.
+4. + test/VERSION_test.rb
+5. + test/gemspec_test.rb
+6. ~ westpac_com_au.gemspec: A header line naming it, and metadata linking the repository's issues, CHANGELOG, source and README.
+7. ~ CHANGELOG: /# CHANGELOG/# westpac_com_au\/CHANGELOG/
+8. ~ WestpacComAu::VERSION: /0.6.1/0.6.2/
 
 0.6.1: - WestpacComAu::Account#login, #validate_args: Now uses superclass WebAccount.
 

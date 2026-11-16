@@ -3,11 +3,9 @@
 # Notes:
 # 1. No browser and no Westpac: only what doesn't depend on the site is tested. Every account which might reach for its browser is given a stand-in, so as none is started.
 
-require_relative '../../lib/westpac_com_au'
+require_relative '../helper'
 
 require 'date'
-require 'minitest/autorun'
-require 'minitest-spec-context'
 
 describe WestpacComAu::Account do
   def stand_in_element(displayed: true)
