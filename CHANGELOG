@@ -2,6 +2,13 @@
 
 ## 20261116
 
+0.6.1: - WestpacComAu::Account#login, #validate_args: Now uses superclass WebAccount.
+
+1. ~ westpac_com_au.gemspec: webaccount /'~> 0.9'/'~> 0.10'/
+2. - WestpacComAu::Account#login, WebAccount 0.10.0's naming every missing value at once.
+3. - WestpacComAu::Account#validate_args, WebAccount 0.10.0's being inherited.
+4. ~ WestpacComAu::VERSION: /0.6.0/0.6.1/
+
 0.6.0: Ready for publishing.
 
 1. + westpac_com_au.gemspec

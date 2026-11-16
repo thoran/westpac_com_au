@@ -35,11 +35,6 @@ module WestpacComAu
       export_button: {css: 'button.export-link'}
     }
 
-    def login(username: nil, password: nil)
-      validate_args(username: username || self.username, password: password || self.password)
-      super
-    end
-
     # period is :all, the last year, or :last_month. Without it, from_date and to_date, which default to a year ago and today. Returns the name of the CSV file downloaded.
     def download_transactions(account_number:, period: nil, from_date: nil, to_date: nil)
       from_date, to_date = dates(period: period, from_date: from_date, to_date: to_date)
@@ -51,17 +46,6 @@ module WestpacComAu
     end
 
     private
-
-    def validate_args(args)
-      missing_args = []
-      args.each do |arg_name, value|
-        missing_args << arg_name unless value
-      end
-      return if missing_args.empty?
-      aggregate_error = missing_args.join(', ')
-      copula = missing_args.count > 1 ? 'are' : 'is'
-      raise ArgumentError, "#{aggregate_error} #{copula} missing."
-    end
 
     # cookie notice
 
