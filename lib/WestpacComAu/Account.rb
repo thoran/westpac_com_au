@@ -1,194 +1,143 @@
-# WestpacComAu.rb
-# WestpacComAu
+# WestpacComAu/Account.rb
+# WestpacComAu::Account
 
-# 20210217
-# 0.5.3
+# Notes:
+# 1. Westpac shows a cookie notice, drawn by Didomi, on the login page and at times on later pages. Where it's showing, Accept essential only is clicked before going on.
+# 2. The Sign Out link has no id, so it's found by its text. It's what login waits for, as it's on every page after logging in.
+# 3. Signing out lands on a page saying so, with its form#logout, which at times goes on to the login page, with its form#login; either is taken as logged out. Both pages have an element with the id signin, so that id doesn't tell them apart.
+# 4. Where a one-time code is asked for after signing in, login waits default_wait_timeout seconds for it to be entered by hand.
+# 5. A username or password not given stops login before the browser is started, naming every one missing.
+# 6. The newest finished CSV file to appear in download_directory once Export is clicked is taken to be the export.
 
-# Changes since 0.4:
-# 1. Only now getting around to removing password keypad entry after Westpac changed it to an input field about a year ago.
-# 0/1
-# 2. /require 'Month.rb/Month'/require 'Month'/
-# 1/2
-# 3. /require 'Selenium/WebDriver/SearchContext/ElementTests'/require 'Selenium/WebDriver/SearchContext/ElementPresentQ/element_presentQ'
-# 2/3
-# 4. Commented the @logged_in block back in.
-
-require 'Array/extract_optionsX'
-require 'Date/self.last_year'
-require 'Date/self.parse'
-require 'Month'
-require 'selenium-webdriver'
-require 'Selenium/WebDriver/SearchContext/ElementPresentQ/element_presentQ'
-require 'WebAccount'
+require 'date'
+require 'webaccount'
 
 module WestpacComAu
   class Account < WebAccount
-
-    PAGE_IDS = {
-      login_page_url: 'https://online.westpac.com.au/esis/Login/SrvPage?referrer=http%3A%2F%2Fwww.westpac.com.au%2FHomepageAlternative%2F',
-      login_page_username_field_id: 'fakeusername',
-      login_page_password_field_id: 'password',
-      login_page_submit_button_id: 'signin',
-      # logout_button_id: '',
-      # logged_out_xpath: ''
+    PAGE_SELECTORS = {
+      login_page_url: 'https://banking.westpac.com.au/wbc/banking/handler?TAM_OP=login&segment=personal&logout=false',
+      login_page_username_field_selector: {id: 'fakeusername'},
+      login_page_password_field_selector: {id: 'password'},
+      login_page_submit_button_selector: {id: 'signin'},
+      logout_button_selector: {xpath: '//a[normalize-space()="Sign Out"]'},
+      logged_out_selector: {css: 'form#logout, form#login'}
     }
 
-    def initialize(username: nil, password: nil)
-      super(
-        username: username, password: password,
-        login_page_url: PAGE_IDS[:login_page_url],
-        login_page_username_field_id: PAGE_IDS[:login_page_username_field_id], login_page_password_field_id: PAGE_IDS[:login_page_password_field_id],
-        login_page_submit_button_id: PAGE_IDS[:login_page_submit_button_id],
-        logout_button_id: PAGE_IDS[:logout_button_id],
-        logged_out_xpath: PAGE_IDS[:logged_out_xpath],
-      )
-    end
+    COOKIE_NOTICE_BUTTON_SELECTOR = {id: 'didomi-notice-disagree-button'}
 
-    # begin overrides of WebAccount...
+    TRANSACTIONS_PAGE_URL = 'https://banking.westpac.com.au/secure/banking/reportsandexports/exportparameters/2/'
+
+    TRANSACTIONS_SELECTORS = {
+      from_date_field: {id: 'DateRange_StartDate'},
+      to_date_field: {id: 'DateRange_EndDate'},
+      account_field: {id: 'Accounts_1'},
+      csv_radio_button: {id: 'File_type_1'},
+      export_button: {css: 'button.export-link'}
+    }
 
     def login(username: nil, password: nil)
-      @logged_in = false
-      username ||= self.username
-      password ||= self.password
-      attempts = 0
-      loop do
-        begin
-          get_login_page
-          enter_username(username)
-          enter_password(password)
-          login_page_submit_button.click
-          break
-        rescue Timeout::Error, Selenium::WebDriver::Error::UnknownError, Selenium::WebDriver::Error::NoSuchElementError => e
-          attempts += 1
-          if attempts >= 3
-            driver.quit
-            puts "Giving up after 3 attempts to #{__method__} because #{e}."
-            exit
-          end
-        end
-      end
-      # The code block below was commented out because it was causing the whole thing to bomb for some reason,
-      # so I had set @logged_in to true, but it seems to be working OK now.
-      @logged_in = driver_wait.until do
-        # If I can do away with one of these elements, then I can use the inherited login().
-        driver.element_present?(:id, 'overview-dashboard') ||
-        driver.element_present?(:id, 'Overview.Accounts.List')
-      end
-      # @logged_in = true
+      validate_args(username: username || self.username, password: password || self.password)
+      super
     end
 
-    # If I can do away with one of these elements, then I can use the inherited logout().
-    def logout
-      case
-      when driver.element_present?(:xpath, '//a[.="Sign Out"]') # The link provided on the dashboard page and most everywhere else.
-        driver.find_element(:xpath, '//a[.="Sign Out"]').click
-      when driver.element_present?(:xpath, '//a[.="Sign out"]') # The link provided on the "Multiple sessions" page.
-        driver.element_present?(:xpath, '//a[.="Sign out"]').click
-      else # Failing the above, there's always just getting the link.
-        driver.get('https://banking.westpac.com.au/wbc/banking/handler?TAM_OP=logout')
-      end
-    end
-
-    # end overrides of WebAccount
-
-    def download_transactions(*args)
-      options = args.extract_options!
-      if options[:period]
-        case options[:period]
-        when :all
-          download_all_transactions(options)
-        when :last_month
-          download_last_months_transactions(options)
-        end
-      else
-        download_custom_period_transactions(options)
-      end
-    end
-
-    def download_custom_period_transactions(options)
+    # period is :all, the last year, or :last_month. Without it, from_date and to_date, which default to a year ago and today. Returns the name of the CSV file downloaded.
+    def download_transactions(account_number:, period: nil, from_date: nil, to_date: nil)
+      from_date, to_date = dates(period: period, from_date: from_date, to_date: to_date)
       get_transactions_page
-      options[:from_date] = options[:from_date] || Date.last_year
-      options[:to_date] = options[:to_date] || Date.today
-      enter_dates(options)
-      select_bank_account(options[:account_number])
-      download_submit_button.click
-      sleep 10
-    end
-
-    def download_last_months_transactions(options)
-      options.merge!(from_date: Month.last.start_date, to_date: Month.last.finish_date)
-      download_custom_period_transactions(options)
-    end
-
-    def download_all_transactions(options)
-      options.merge!(from_date: Date.last_year, to_date: Date.today)
-      download_custom_period_transactions(options)
+      enter_dates(from_date: from_date, to_date: to_date)
+      select_bank_account(account_number)
+      click(TRANSACTIONS_SELECTORS[:csv_radio_button])
+      export_csv
     end
 
     private
 
-    # transactions-related
-
-    def download_submit_button
-      driver.find_element(:css, '.export-link')
-    end
-
-    def get_transactions_page
-      if logged_in?
-        driver.get('https://banking.westpac.com.au/secure/banking/reportsandexports/exportparameters/2/')
-        return driver.find_element(:css, 'h1').text == 'Transactions export'
-      else
-        login
-        sleep 10
-        get_transactions_page
+    def validate_args(args)
+      missing_args = []
+      args.each do |arg_name, value|
+        missing_args << arg_name unless value
       end
+      return if missing_args.empty?
+      aggregate_error = missing_args.join(', ')
+      copula = missing_args.count > 1 ? 'are' : 'is'
+      raise ArgumentError, "#{aggregate_error} #{copula} missing."
     end
 
-    def from_date_field
-      driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker from"]/label/input')
+    # cookie notice
+
+    # Didomi draws its notice once the page has loaded, so it's waited for briefly. Where the choice is remembered, as in a profile kept between runs, there's none.
+    def cookie_notice_button
+      find_wait.until{driver.find_elements(*COOKIE_NOTICE_BUTTON_SELECTOR.first).detect(&:displayed?)}
+    rescue Selenium::WebDriver::Error::TimeoutError
+      nil
     end
 
-    def to_date_field
-      driver.find_element(:xpath, '//div[@class="date-range-selector"]/div[@class="fiserv-date-picker to"]/label/input')
+    def decline_cookies
+      cookie_notice_button&.click
     end
 
-    # The order is to-from because the from date picker occludes the whole of the to input field.
-    def enter_dates(options)
-      enter_to_date(options[:to_date])
-      enter_from_date(options[:from_date])
+    # logging in
+
+    def get_login_page
+      super
+      decline_cookies
     end
 
-    def enter_from_date(from_date)
-      from_date_field.clear
-      from_date_field.send_keys(formatted_date(from_date))
+    # dates
+
+    def last_month_start_date
+      Date.today.prev_month - (Date.today.prev_month.day - 1)
     end
 
-    def enter_to_date(to_date)
-      to_date_field.clear
-      to_date_field.send_keys(formatted_date(to_date))
+    def last_month_finish_date
+      Date.today - Date.today.day
     end
 
-    def bank_account_field
-      driver.find_element(:xpath, '//input[@id="Accounts_1"]')
-    end
-
-    def select_bank_account(account_number)
-      bank_account_field.send_keys(account_number)
-      sleep 1
-      bank_account_field.send_keys(Selenium::WebDriver::Keys[:return])
+    def dates(period:, from_date:, to_date:)
+      case period
+      when :all then [Date.today.prev_year, Date.today]
+      when :last_month then [last_month_start_date, last_month_finish_date]
+      when nil then [from_date || Date.today.prev_year, to_date || Date.today]
+      else raise ArgumentError, "Unknown period #{period.inspect}: it's :all or :last_month."
+      end
     end
 
     def formatted_date(date)
       date = Date.parse(date) if date.is_a?(String)
-      date.strftime("%d/%m/%Y")
+      date.strftime('%d/%m/%Y')
     end
 
-  end
-end
+    # transactions
 
-if __FILE__ == $0
-  westpac_account = WestpacComAu::Account.new(username: ARGV[0], password: ARGV[1])
-  westpac_account.login
-  westpac_account.download_transactions
-  westpac_account.shutdown
+    def get_transactions_page
+      login unless logged_in?
+      driver.get(TRANSACTIONS_PAGE_URL)
+      wait_for(TRANSACTIONS_SELECTORS[:from_date_field])
+      decline_cookies
+    end
+
+    # Set by WebAccount's set_value, typed dates being thrown away by the date picker; and stops where the values didn't take, rather than exporting another range.
+    def enter_dates(from_date:, to_date:)
+      from_date_field, to_date_field = find(TRANSACTIONS_SELECTORS[:from_date_field]), find(TRANSACTIONS_SELECTORS[:to_date_field])
+      set_value(from_date_field, formatted_date(from_date))
+      set_value(to_date_field, formatted_date(to_date))
+      unless [from_date_field, to_date_field].map{|field| field.attribute('value')} == [formatted_date(from_date), formatted_date(to_date)]
+        raise "The dates #{formatted_date(from_date)} to #{formatted_date(to_date)} didn't take."
+      end
+    end
+
+    # The account field suggests accounts as the number is typed, and Enter takes the suggestion.
+    def select_bank_account(account_number)
+      account_field = find(TRANSACTIONS_SELECTORS[:account_field])
+      account_field.send_keys(account_number)
+      sleep 1
+      account_field.send_keys(Selenium::WebDriver::Keys[:return])
+    end
+
+    def export_csv
+      clicked_at = Time.now
+      click(TRANSACTIONS_SELECTORS[:export_button])
+      wait_for_download(since: clicked_at)
+    end
+  end
 end

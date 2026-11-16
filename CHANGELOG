@@ -1,0 +1,193 @@
+# CHANGELOG
+
+## 20261116
+
+0.6.0: Ready for publishing.
+
+1. + westpac_com_au.gemspec
+2. + CHANGELOG: With entries for 0.0.0 to 0.5.3 taken from their headers' change notes.
+3. + Gemfile
+4. + Rakefile
+5. + LICENSE
+6. + README.md
+7. + lib/westpac_com_au.rb
+8. + lib/WestpacComAu/VERSION.rb
+9. ~ lib/WestpacComAu/Account.rb: - require 'Array/extract_optionsX', 'Date/self.last_year', 'Date/self.parse', 'Month', 'Selenium/WebDriver/SearchContext/ElementPresentQ/element_presentQ'; /require 'WebAccount'/require 'webaccount'/; + require 'date'.
+10. /WestpacComAu::Account::PAGE_IDS/WestpacComAu::Account::PAGE_SELECTORS/: Follows the changes in WebAccount.
+11. - WestpacComAu::Account#initialize: Use WebAccount superclass reading the PAGE_SELECTORS itself.
+12. + WestpacComAu::Account#validate_args
+13. ~ WestpacComAu::Account#login: Defer to WebAccount superclass.
+14. - WestpacComAu::Account#logout: Use WebAccount superclass.
+15. + WestpacComAu::Account::COOKIE_NOTICE_BUTTON_SELECTOR, #cookie_notice_button, #decline_cookies, #get_login_page: Accept essential cookies only.
+16. ~ WestpacComAu::Account#download_transactions: Takes account_number:, period:, from_date: and to_date: as keywords, chooses CSV, and returns the name of the file downloaded.
+17. - WestpacComAu::Account#download_custom_period_transactions, #download_last_months_transactions, #download_all_transactions
+18. + WestpacComAu::Account#dates, #last_month_start_date, #last_month_finish_date
+19. + WestpacComAu::Account::TRANSACTIONS_PAGE_URL, ::TRANSACTIONS_SELECTORS: The date fields are found by their ids.
+20. - WestpacComAu::Account#download_submit_button, #from_date_field, #to_date_field, #bank_account_field, #enter_from_date, #enter_to_date
+21. ~ WestpacComAu::Account#enter_dates: The dates are set by WebAccount's set_value, the date picker throwing typed dates away; and it stops where they didn't take, rather than exporting another range.
+22. + WestpacComAu::Account#export_csv
+23. ~ WestpacComAu::Account#get_transactions_page: Waits for the date fields rather than sleeping, and declines the cookie notice.
+24. ~ lib/WestpacComAu/Account.rb: - self-run block
+25. /class WestpacComAu::Transactions/module WestpacComAu::Transactions/; - require 'Array/all_but_first', 'Date/last_year', 'fileutils', 'time'; /require 'WestpacComAu/Account'/require_relative './Account'/.
+26. ~ WestpacComAu::Transactions.download_csv_file: Takes username:, password:, period:, from_date:, to_date: and web_account_options:, and returns the name of the file downloaded. The account is shut down even where the download fails.
+27. - WestpacComAu::Transactions.csv_filename: Use name of the file being downloaded.
+28. + test/WestpacComAu/Account_test.rb
+29. + test/WestpacComAu/Transactions_test.rb
+
+
+## 20210217
+
+0.5.3: ~ WestpacComAu::Account#login: Waits for the dashboard again.
+
+
+## 20200529
+
+0.5.2: /require 'Selenium/WebDriver/SearchContext/ElementTests'/require 'Selenium/WebDriver/SearchContext/ElementPresentQ/element_presentQ'/
+
+
+## 20191013
+
+0.5.1: /require 'Month.rbd/Month'/require 'Month'/
+
+
+## 20190908
+
+0.5.0: Westpac replaced the password keypad with a password field, and changed its account field.
+
+1. ~ PAGE_IDS: + login_page_password_field_id, and it's WestpacComAu::Account::PAGE_IDS.
+2. - WestpacComAu::Account#enter_password, #password_button: WebAccount's types the password into the field.
+3. ~ WestpacComAu::Account#bank_account_field: Accounts_1
+4. ~ WestpacComAu::Account#select_bank_account: Presses Enter after the account number.
+5. ~ WestpacComAu::Account#login: Sets @logged_in rather than waiting for the dashboard, the wait failing.
+6. ~ WestpacComAu::Account: /@driver/driver/
+7. + lib/WestpacComAu/Transactions.rb: WestpacComAu::Transactions.download_csv_file removes the day's export from the Downloads directory, then logs in, downloads an account's transactions from a date to today, and shuts down.
+
+
+## 20171223
+
+0.4.0: ~ WestpacComAu::Account is a WebAccount, taking username: in place of customer_id:.
+
+1. /lib/WestpacComAu.rb/lib/WestpacComAu/Account.rb/
+2. + require 'WebAccount'
+3. + PAGE_IDS: The login page's URL, username field and submit button.
+4. ~ WestpacComAu::Account#initialize: Takes username: and password:, and passes them with PAGE_IDS to WebAccount.
+5. ~ WestpacComAu::Account#login: Takes username: and password:, and logs in with WebAccount's methods.
+6. ~ WestpacComAu::Account#enter_password, #password_button: Override WebAccount's, the password being clicked in on the keypad.
+7. - WestpacComAu::Account#customer_id, #password, #shutdown, #logged_in?, #enter_customer_id, #customer_id_field, #sign_in: WebAccount's do the same.
+8. /WestpacComAu::Account#submit_button/WestpacComAu::Account#download_submit_button/, the export button alone.
+9. ~ lib/WestpacComAu/Account.rb: Run from the command line, it logs in with the username and password given, downloads the transactions, and shuts down.
+
+
+## 20160820
+
+0.3.0: Westpac renamed its username field and its submit button, and made the password keypad's keys buttons.
+
+1. ~ WestpacComAu::Account#customer_id_field: fakeusername
+2. ~ WestpacComAu::Account#password_button: The keypad's <button> bearing the character.
+3. ~ WestpacComAu::Account#submit_button: signin
+
+
+## 20160403
+
+0.2.0: Westpac's account selection changed from a select list to a field.
+
+1. /WestpacComAu::Account#bank_account_dropdown_list/WestpacComAu::Account#bank_account_field/
+2. ~ WestpacComAu::Account#select_bank_account: Types the account number into the field.
+
+
+## 20150208
+
+0.1.0: Westpac's link to the transactions export changed, and its export button lost its id.
+
+1. ~ WestpacComAu::Account#get_transactions_page: Goes straight to the transactions export.
+2. ~ WestpacComAu::Account#submit_button: The export button is found by .export-link.
+
+
+## 20140801
+
+0.0.14: ~ WestpacComAu::Account#initialize: The wait is 180 seconds rather than 60.
+
+
+## 20140720
+
+0.0.13: ~ WestpacComAu::Account#login: Overview.Accounts.List counts as logged in, as well as overview-dashboard.
+
+
+## 20140629
+
+0.0.12: ~ WestpacComAu::Account#initialize: The wait is 60 seconds rather than 30.
+
+
+0.0.11: ~ WestpacComAu::Account#download_transactions: + period: :all, the last year; and the dates default to the last year.
+
+1. + WestpacComAu::Account#download_all_transactions, #enter_dates
+2. ~ WestpacComAu::Account#download_last_months_transactions: Goes through #download_custom_period_transactions.
+3. - WestpacComAu::Account#last_month_from_date, #last_month_to_date, #enter_last_month_first_date, #enter_last_month_last_date
+4. /WestpacComAu::Account#select_bank_account_from_dropdown_list/WestpacComAu::Account#select_bank_account/
+5. + require 'Date/self.last_year'
+
+
+0.0.10: + WestpacComAu::Account#download_custom_period_transactions, taking from_date: and to_date:.
+
+1. ~ WestpacComAu::Account#download_transactions: period: :last_month, or otherwise the dates given.
+2. /WestpacComAu::Account#last_months_transactions/WestpacComAu::Account#download_last_months_transactions/
+3. + WestpacComAu::Account#enter_from_date, #enter_to_date, #formatted_date
+4. - WestpacComAu::Account#last_month_number, #last_month_year, #last_month_date_common_parts, #last_month_first_date, #last_month_last_date
+5. + WestpacComAu::Account#last_month_from_date, #last_month_to_date: Month.last's start and finish dates.
+6. + require 'Date/self.parse'
+
+
+0.0.9: ~ WestpacComAu::Account#login: The "Multiple sessions" page is no longer handled.
+
+1. + WestpacComAu::Account#from_date_field, #to_date_field, #enter_last_month_first_date, #enter_last_month_last_date, #bank_account_dropdown_list
+2. + WestpacComAu::Account#select_bank_account_from_dropdown_list, which raises where the account isn't in the list.
+3. ~ WestpacComAu::Account#last_months_transactions: Enters the to date before the from date, the from date's picker covering the to field.
+4. ~ WestpacComAu::Account#logout: + the "Multiple sessions" page's Sign out link.
+5. ~ WestpacComAu::Account#submit_button: Where there's no btn-submit, it's the first button, which exports.
+
+
+0.0.8: ~ WestpacComAu::Account#login: From a "Multiple sessions" page, it logs out and signs in again.
+
+1. ~ WestpacComAu::Account#logout: Where there's no Sign Out link, the logout URL is gone to.
+
+
+## 20140628, 29
+
+0.0.7: ~ WestpacComAu::Account#login: A "Multiple sessions" page is waited on until the dashboard appears.
+
+
+## 20140628
+
+0.0.6: + WestpacComAu::Account#shutdown, which logs out and quits the browser.
+
+
+0.0.5: + WestpacComAu::Account#logout
+
+1. ~ WestpacComAu::Account#last_months_transactions: Waits 10 seconds after exporting.
+
+
+0.0.4: ~ WestpacComAu::Account#last_months_transactions: The export button is clicked.
+
+
+0.0.3: ~ WestpacComAu::Account#download_transactions: + period:, + account_number:, the account being chosen from the list.
+
+1. ~ WestpacComAu::Account#last_months_transactions: + account_number
+
+
+0.0.2: + WestpacComAu::Account#download_transactions, entering last month's dates on the transactions export.
+
+1. + WestpacComAu::Account#last_months_transactions
+2. + WestpacComAu::Account#last_month_number, #last_month_year, #last_month_date_common_parts, #last_month_first_date, #last_month_last_date
+3. + require 'Month.rbd/Month'
+
+
+0.0.1: + WestpacComAu::Account#get_transactions_page, which goes from Reports and Exports to the transactions export, logging in first where it isn't.
+
+1. ~ WestpacComAu::Account#initialize: /@http_client/@driver/, with a wait of 30 seconds.
+2. ~ WestpacComAu::Account#login: Waits for the dashboard.
+3. + WestpacComAu::Account#logged_in?
+4. + require 'Selenium/WebDriver/SearchContext/ElementTests'
+5. ~ lib/WestpacComAu.rb: The notes of the login page's ids are removed.
+
+
+0.0.0: + lib/WestpacComAu.rb: WestpacComAu::Account logs into Westpac Online Banking with a customer ID, clicking the password in on the keypad.
