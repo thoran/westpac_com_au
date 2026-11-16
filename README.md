@@ -43,7 +43,7 @@ Without a period or dates, they're those of the last year. Otherwise:
 ```
 Dates are Dates, or Strings `Date.parse` can read. Where only one of `from_date` and `to_date` is given, the other is a year ago or today.
 
-`download_transactions` waits for the download to finish, and returns the newest CSV file to have appeared in the download directory since Export was clicked.
+`download_transactions` waits for the download to finish, and returns the newest CSV file to have appeared in the download directory since Export was clicked. Where Westpac says instead that no data is available for the export, it raises RuntimeError, naming the dates.
 
 Or in one step, logging in, downloading, and shutting down even where the download fails:
 ```ruby

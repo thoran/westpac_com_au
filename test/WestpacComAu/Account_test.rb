@@ -75,14 +75,14 @@ describe WestpacComAu::Account do
       account.define_singleton_method(:enter_dates){|from_date:, to_date:| steps << [:enter_dates, from_date, to_date]}
       account.define_singleton_method(:select_bank_account){|account_number| steps << [:select_bank_account, account_number]}
       account.define_singleton_method(:click){|selector| steps << [:click, selector]}
-      account.define_singleton_method(:export_csv){steps << :export_csv; '/downloads/transactions.csv'}
+      account.define_singleton_method(:export_csv){|from_date:, to_date:| steps << [:export_csv, from_date, to_date]; '/downloads/transactions.csv'}
       [account, steps]
     end
 
     it "sets the dates, the account and CSV, and is the file exported" do
       account, steps = account_recording_steps
       _(account.download_transactions(account_number: '123456', from_date: '2026-10-01', to_date: '2026-10-31')).must_equal('/downloads/transactions.csv')
-      _(steps).must_equal([:get_transactions_page, [:enter_dates, '2026-10-01', '2026-10-31'], [:select_bank_account, '123456'], [:click, {id: 'File_type_1'}], :export_csv])
+      _(steps).must_equal([:get_transactions_page, [:enter_dates, '2026-10-01', '2026-10-31'], [:select_bank_account, '123456'], [:click, {id: 'File_type_1'}], [:export_csv, '2026-10-01', '2026-10-31']])
     end
 
     it "is the last year where neither a period nor a date is given" do
@@ -214,13 +214,35 @@ describe WestpacComAu::Account do
   end
 
   describe "#export_csv" do
-    it "is the download which finishes after Export is clicked" do
-      account = account_with_driver(stand_in_driver)
+    def no_data_message
+      WestpacComAu::Account::TRANSACTIONS_SELECTORS[:no_data_message].first
+    end
+
+    # An account which clicks nothing, and whose download directory has the download given, which is none unless given.
+    def account_exporting(driver, download: nil)
+      account = account_with_driver(driver)
       clicked = []
       account.define_singleton_method(:click){|selector| clicked << selector}
-      account.define_singleton_method(:wait_for_download){|since:| since.is_a?(Time) && '/downloads/transactions.csv'}
-      _(account.send(:export_csv)).must_equal('/downloads/transactions.csv')
+      account.define_singleton_method(:newest_download){|since:| since.is_a?(Time) && download}
+      account.define_singleton_method(:default_download_timeout){0.1}
+      [account, clicked]
+    end
+
+    it "is the download which finishes after Export is clicked" do
+      account, clicked = account_exporting(stand_in_driver, download: '/downloads/transactions.csv')
+      _(account.send(:export_csv, from_date: Date.new(2026, 10, 1), to_date: Date.new(2026, 10, 31))).must_equal('/downloads/transactions.csv')
       _(clicked).must_equal([{css: 'button.export-link'}])
+    end
+
+    it "stops, naming the dates, where Westpac says there's no data, rather than waiting out the download" do
+      account, _clicked = account_exporting(stand_in_driver(elements: {no_data_message => [stand_in_element]}))
+      error = _{account.send(:export_csv, from_date: Date.new(2026, 10, 1), to_date: Date.new(2026, 10, 31))}.must_raise(RuntimeError)
+      _(error.message).must_equal('No transactions from 01/10/2026 to 31/10/2026.')
+    end
+
+    it "times out where there's neither a download nor the message" do
+      account, _clicked = account_exporting(stand_in_driver(elements: {no_data_message => [stand_in_element(displayed: false)]}))
+      _{account.send(:export_csv, from_date: Date.new(2026, 10, 1), to_date: Date.new(2026, 10, 31))}.must_raise(Selenium::WebDriver::Error::TimeoutError)
     end
   end
 end

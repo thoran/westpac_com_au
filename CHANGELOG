@@ -2,6 +2,17 @@
 
 ## 20261116
 
+0.6.3: ~ WestpacComAu::Account#export_csv: Stops where there's no data to export, rather than waiting for a timeout.
+
+1. ~ WestpacComAu::Account::TRANSACTIONS_SELECTORS: + no_data_message
+2. + WestpacComAu::Account#no_data?
+3. ~ WestpacComAu::Account#export_csv: Takes from_date: and to_date:, and raises naming them where Westpac's no-data message shows, a download or the message being waited for.
+4. ~ WestpacComAu::Account#download_transactions: Passes the dates to export_csv.
+5. ~ test/WestpacComAu/Account_test.rb: The export stops upon the no-data message, and times out where there's neither it nor a download.
+6. ~ README.md: download_transactions raises where there's no data for the export.
+7. ~ lib/WestpacComAu/Account.rb: Its notes say so too.
+8. ~ WestpacComAu::VERSION: /0.6.2/0.6.3/
+
 0.6.2: The tests share a helper, and VERSION and the gemspec are tested; the gemspec links to the repository.
 
 1. + test/helper.rb

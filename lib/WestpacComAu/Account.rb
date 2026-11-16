@@ -7,7 +7,7 @@
 # 3. Signing out lands on a page saying so, with its form#logout, which at times goes on to the login page, with its form#login; either is taken as logged out. Both pages have an element with the id signin, so that id doesn't tell them apart.
 # 4. Where a one-time code is asked for after signing in, login waits default_wait_timeout seconds for it to be entered by hand.
 # 5. A username or password not given stops login before the browser is started, naming every one missing.
-# 6. The newest finished CSV file to appear in download_directory once Export is clicked is taken to be the export.
+# 6. The newest finished CSV file to appear in download_directory once Export is clicked is taken to be the export. Where Westpac says instead that there's no data for the export, it stops, naming the dates.
 
 require 'date'
 require 'webaccount'
@@ -32,7 +32,8 @@ module WestpacComAu
       to_date_field: {id: 'DateRange_EndDate'},
       account_field: {id: 'Accounts_1'},
       csv_radio_button: {id: 'File_type_1'},
-      export_button: {css: 'button.export-link'}
+      export_button: {css: 'button.export-link'},
+      no_data_message: {xpath: '//*[contains(text(), "No data is available for the export search criteria")]'}
     }
 
     # period is :all, the last year, or :last_month. Without it, from_date and to_date, which default to a year ago and today. Returns the name of the CSV file downloaded.
@@ -42,7 +43,7 @@ module WestpacComAu
       enter_dates(from_date: from_date, to_date: to_date)
       select_bank_account(account_number)
       click(TRANSACTIONS_SELECTORS[:csv_radio_button])
-      export_csv
+      export_csv(from_date: from_date, to_date: to_date)
     end
 
     private
@@ -118,10 +119,17 @@ module WestpacComAu
       account_field.send_keys(Selenium::WebDriver::Keys[:return])
     end
 
-    def export_csv
+    def no_data?
+      driver.find_elements(*TRANSACTIONS_SELECTORS[:no_data_message].first).any?(&:displayed?)
+    end
+
+    # Where there's nothing in the period, Westpac says so on the page rather than downloading anything, so either is waited for.
+    def export_csv(from_date:, to_date:)
       clicked_at = Time.now
       click(TRANSACTIONS_SELECTORS[:export_button])
-      wait_for_download(since: clicked_at)
+      download_wait.until{newest_download(since: clicked_at) || (no_data? && :no_data)}.tap do |download|
+        raise "No transactions from #{formatted_date(from_date)} to #{formatted_date(to_date)}." if download == :no_data
+      end
     end
   end
 end
